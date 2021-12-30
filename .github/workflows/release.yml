@@ -15,7 +15,7 @@ jobs:
         with:
           type: 'tar'
           filename: 'release.tar.gz'
-          exclusions: '*.git* .editorconfig'
+          exclusions: '.gitignore'
       - name: Upload Release
         uses: ncipollo/release-action@v1
         with:
