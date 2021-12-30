@@ -1,7 +1,9 @@
 name: Create Archive
+
 on:
-  release:
-    types: [created]
+  push:
+    tags:
+      - '*' # triggers only if push new tag version
 
 jobs:
   build:
