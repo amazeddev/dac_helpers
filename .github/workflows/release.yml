@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Tar resources
         run: |
-          tar -cf release.tar.gz /lib requirements.txt
+          tar -cf release.tar.gz lib requirements.txt
       - name: Upload Release
         uses: ncipollo/release-action@v1
         with:
