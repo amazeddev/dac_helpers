@@ -12,8 +12,16 @@ class Data():
 
   @staticmethod
   def check(name=None, key=None, columns=None):
-    df = pd.read_hdf('./.dac/data/{}.h5'.format(name), key, columns=columns)   
-    print(df.head(10))
+    df = pd.DataFrame()
+    with pd.HDFStore('./.dac/data/{}.h5'.format(name),'a') as hdf:
+      keys = [k.split("/")[2] for k in hdf.keys() if k.split("/")[1] == key]
+      for k in keys:
+        col = hdf.select("/{}/{}".format(key, k), start=0, stop=10)
+        df[k] = col
+    
+    print(df)
+    hdf.close()
+
 
   @staticmethod
   def store(name=None, results=[], key=None):
@@ -26,13 +34,38 @@ class Data():
       col = [np.nan if e else next(col_gen) for e in raw_res["Pres"]]
       df[raw_res["Name"]] = np.array(col)
 
-    hdf = pd.HDFStore('./.dac/data/{}.h5'.format(name),'a')
-    hdf.put("/{}".format(key), df, format='t', data_columns=True)
+    with pd.HDFStore('./.dac/data/{}.h5'.format(name),'a') as hdf:
+      for c in df.columns:
+        hdf.put('/{}/{}'.format(key, c), df[c], format='t', data_columns=True)
+
+    print(df.head(10))
+        
     hdf.close()
 
   @staticmethod
+  def remove(name=None, columns=[], key=None):
+      
+    with pd.HDFStore('./.dac/data/{}.h5'.format(name),'a') as hdf:
+      keys = [k.split("/")[2] for k in hdf.keys() if k.split("/")[1] == key]
+      if len(columns) == 0:
+        for k in keys:
+          hdf.remove('/{}/{}'.format(key, k))
+      else:
+        for c in columns:
+          if c in keys:
+            hdf.remove('/{}/{}'.format(key, c))
+
+    print(columns)
+        
+    hdf.close()
+    # TODO: free hdf5 space here?!
+
+  @staticmethod
   def fetch(name=None, columns=None):
-    df = pd.read_hdf('./.dac/data/{}.h5'.format(name), 'import', columns=columns)
+    
+    # load the HDF5 data into a dataframe
+    with pd.HDFStore('./.dac/data/{}.h5'.format(name), mode='r') as hdf:
+      df = pd.DataFrame({c: hdf.get('/import/{}'.format(c)) for c in columns})
 
     conn = connect()
     resps = []
@@ -60,8 +93,10 @@ class Data():
   def imprt(name, path):
     csv = pd.read_csv(path)
 
-    hdf = pd.HDFStore('./.dac/data/{}.h5'.format(name),'a')
-    hdf.put('import', csv, format='t', data_columns=True)
+    with pd.HDFStore('./.dac/data/{}.h5'.format(name),'a') as hdf:
+      for i in csv.columns:
+        hdf.append('import/{}'.format(i), csv[i])
+        
     hdf.close()
 
 if __name__ == "__main__":
